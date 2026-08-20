@@ -1,0 +1,17 @@
+{
+  "name": "shopping-shorts",
+  "version": "0.3.0",
+  "description": "쇼핑쇼츠(유튜브 쇼츠) 풀세트 제작 플러그인. 상품 정보 → 후킹 스크립트 → 장면별 스토리보드 → AI 영상 생성(씬별 image-to-video 오케스트레이션) → 발행용 제목·설명·해시태그를 4스킬 체인으로 산출합니다.",
+  "author": {
+    "name": "SJ"
+  },
+  "license": "MIT",
+  "keywords": [
+    "youtube-shorts",
+    "shopping",
+    "commerce",
+    "script",
+    "storyboard",
+    "korean"
+  ]
+}

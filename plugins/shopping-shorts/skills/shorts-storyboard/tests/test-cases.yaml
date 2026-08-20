@@ -1,0 +1,31 @@
+name: shorts-storyboard
+version: 0.3.0
+test_cases:
+  - id: happy_mixed_mode
+    description: 30초 스크립트 → 혼합(실촬영+AI) 스토리보드
+    input:
+      script: "확정된 30초 스크립트"
+      mode: "혼합"
+      reference_a: "제품 실사진"
+    expected:
+      checks:
+        - "씬 수 7-12개, 씬당 2-5초"
+        - "표에 시간·화면·앵글·자막·오디오 5컬럼 모두 채움"
+        - "AI 씬 프롬프트에 vertical 9:16 포함"
+        - "자막 배치가 references/youtube-shorts-specs.md 안전영역 준수"
+        - "제품 클로즈업 씬 40% 이상"
+  - id: edge_b_as_source
+    description: 상황 자료(B)만 있고 제품 자료(A) 없음
+    input:
+      reference_b: "경쟁 제품이 크게 보이는 캠핑 사용 장면"
+    expected:
+      checks:
+        - "B를 image-to-video 소스로 쓰지 않음"
+        - "B에서 배경·무드만 추출, 타사 제품 형태·로고 미반영"
+        - "A 요청 안내 1회"
+  - id: edge_no_script
+    description: 스크립트 없이 호출
+    input: {}
+    expected:
+      checks:
+        - "shorts-script 선행을 제안하고 임의 진행하지 않음"
