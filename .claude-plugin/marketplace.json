@@ -1,0 +1,19 @@
+{
+  "name": "sj-marketplace",
+  "owner": {
+    "name": "SJ"
+  },
+  "metadata": {
+    "description": "SJ의 Claude 플러그인 마켓플레이스 — 쇼핑쇼츠 제작 등 커머스 콘텐츠 자동화 플러그인 모음",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "shopping-shorts",
+      "source": "./plugins/shopping-shorts",
+      "description": "쇼핑쇼츠(유튜브 쇼츠) 풀세트 제작 플러그인 — 상품 분석부터 후킹 스크립트, 장면별 스토리보드, 발행용 제목·설명·해시태그까지 3개 스킬 체인으로 산출",
+      "category": "content",
+      "tags": ["youtube-shorts", "commerce", "video-script", "storyboard", "korean"]
+    }
+  ]
+}

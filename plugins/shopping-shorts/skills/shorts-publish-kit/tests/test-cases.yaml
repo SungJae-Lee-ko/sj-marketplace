@@ -1,0 +1,23 @@
+name: shorts-publish-kit
+version: 0.3.0
+test_cases:
+  - id: happy_full_chain
+    description: 체인 완주 후 발행 키트 생성
+    input:
+      chain: "script→storyboard→video-gen 완료, AI 클립 포함, 판매 형태=제휴"
+    expected:
+      checks:
+        - "산출물 5종 모두 존재(제목3안·설명·해시태그·고정댓글·체크리스트)"
+        - "제목 3안이 서로 다른 방향(검색형/호기심형/타깃호명형)"
+        - "제목에 #shorts 없음, 설명란에 있음"
+        - "제휴 수수료 표기 문구 설명문에 포함"
+        - "체크리스트에 합성 콘텐츠 공개 설정 항목 포함"
+        - "해시태그 10-15개, 대형3+중형5+니치5 비율"
+  - id: edge_standalone_call
+    description: 체인 없이 단독 호출(제목만 요청)
+    input:
+      request: "제목만 뽑아줘"
+    expected:
+      checks:
+        - "5종 강제하지 않고 요청 범위만 산출"
+        - "판매 형태 미확인 시 제휴 여부 1회 확인"

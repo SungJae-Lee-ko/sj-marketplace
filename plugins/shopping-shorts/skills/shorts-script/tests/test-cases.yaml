@@ -1,0 +1,55 @@
+name: shorts-script
+version: 0.3.0
+test_cases:
+  - id: happy_full_input
+    description: 상품·타깃·레퍼런스 모두 제공 시 정상 스크립트 생성
+    input:
+      product: "무선 미니 가습기, 2만원대"
+      target: "사무실 직장인"
+      reference: "제품 실사진 1장(A), 벤치마킹 쇼츠 스크린샷 1장(C)"
+    expected:
+      checks:
+        - "0단계 레퍼런스 질문을 건너뛰고 받은 자료의 A/C 분류 확인"
+        - "스타일 프로필을 제시하고 사용자 확인 후 진행"
+        - "훅 2안 제시"
+        - "구조 5단계(훅-문제-해결-증거-CTA) + 초 단위 타임코드"
+        - "나레이션과 자막 분리 표기"
+        - "셀링포인트 2개 이하"
+  - id: edge_minimal_input
+    description: 상품명만 주었을 때
+    input:
+      product: "수제 도자기 머그"
+    expected:
+      ask_user_clarification: true
+      questions_about: ["레퍼런스 유무", "타깃", "셀링포인트", "목적(길이 매트릭스용)"]
+      proceed_only_after_answers: true
+  - id: edge_style_conflict
+    description: 레퍼런스 스타일이 금지사항(과장 표현)과 충돌
+    input:
+      reference: "'100% 효과' 문구를 쓰는 벤치마킹 쇼츠"
+    expected:
+      checks:
+        - "금지사항이 우선 적용됨"
+        - "충돌 사실을 사용자에게 고지"
+  - id: happy_category_supplement
+    description: 건강식품 카테고리 브리프 적용
+    input:
+      product: "유산균 영양제"
+      category: "건강식품"
+    expected:
+      checks:
+        - "category-briefs.md 건강식품 브리프 적용 (타깃 호명형 훅 우선)"
+        - "질병 예방·치료 표현 없음 (면역력·다이어트 등)"
+        - "산출 후 금지 표현 자체 점검 결과 표기"
+  - id: happy_diagnose_mode
+    description: 기존 스크립트 진단 요청
+    input:
+      request: "이 스크립트 조회수 안 나와, 진단해줘"
+      script: "안녕하세요 여러분~ 오늘은 신제품 소개할게요. 특징은 5가지인데요..."
+    expected:
+      checks:
+        - "생성이 아닌 진단 모드로 동작"
+        - "100점 채점표 + 항목별 근거 인용"
+        - "훅 감점(인사말 시작)과 셀링포인트 감점(5개 나열) 검출"
+        - "최우선 수정 1개 + 구체 교체안 제시"
+        - "임의 재작성하지 않고 재작성 여부를 제안으로 물음"
