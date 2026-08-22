@@ -1,0 +1,60 @@
+name: shorts-assemble
+version: 0.6.0
+test_cases:
+  - id: happy_full_assembly
+    description: 클립 8개 + 스토리보드 + 나레이션으로 전체 자동 조립
+    input:
+      clips: "연결 폴더에 씬 클립 8개"
+      storyboard: "확정 (자막·트림·전환 포함)"
+      narration: "TTS mp3 6개"
+    expected:
+      checks:
+        - "폴더 자동 스캔으로 씬 번호 매칭 (파일명 우선, 애매하면 매칭표 확인)"
+        - "모든 클립을 1080×1920/30fps/H.264/48kHz로 정규화"
+        - "자막이 하단 300px·우측 120px·상단 150px 안전영역 밖에 번인"
+        - "한글 폰트 존재 확인 후 렌더 (미존재 채로 렌더 금지)"
+        - "렌더 후 프레임 추출 검수 + ffprobe로 길이·규격 대조"
+        - "AI 생성 클립 포함 사실을 조립 리포트에 명시"
+  - id: happy_direct_download
+    description: 클립이 원격 URL로만 존재하고 egress가 열린 환경
+    input:
+      clips: "Higgsfield CDN URL 목록"
+      network: "허용 목록에 CDN 등록됨"
+    expected:
+      checks:
+        - "직접 다운로드를 먼저 시도해 성공 (사용자 개입 0)"
+  - id: edge_egress_blocked
+    description: 원격 클립 다운로드가 egress 차단으로 실패
+    input:
+      clips: "원격 URL만"
+      network: "차단"
+    expected:
+      checks:
+        - "무한 재시도하지 않음"
+        - "클립을 연결 폴더에 넣어달라고 파일 단위로 안내"
+        - "허용 목록에 CDN 도메인 추가를 1회 안내"
+  - id: edge_missing_scenes
+    description: 일부 씬 클립 미확보 상태에서 조립 요청
+    input:
+      clips: "8개 중 5개만 존재"
+    expected:
+      checks:
+        - "확보된 씬만으로 가조립할지, 기다릴지 사용자에게 질문"
+        - "임의로 씬을 건너뛰고 완성본이라고 전달하지 않음"
+  - id: edge_narration_overflow
+    description: 나레이션 총 길이가 영상 총 길이보다 김
+    input:
+      narration_total: "29초"
+      video_total: "25초"
+    expected:
+      checks:
+        - "템포 조정(atempo) 또는 씬 연장으로 자동 정합"
+        - "조정 사실을 사용자에게 고지"
+  - id: edge_third_party_footage
+    description: 타인 저작물 영상을 조립 소재로 넣어달라는 요청
+    input:
+      material: "유튜브에서 받은 타사 영상"
+    expected:
+      refuse: true
+      checks:
+        - "분석 전용 원칙 안내 (shorts-storyboard 참고 영상 분석 절차로 라우팅)"
