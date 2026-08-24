@@ -1,5 +1,5 @@
 name: shorts-video-gen
-version: 0.3.0
+version: 0.7.0
 test_cases:
   - id: happy_first_run
     description: 9씬 스토리보드 첫 생성 실행
@@ -37,3 +37,30 @@ test_cases:
       character_request: "유명 연예인 사진"
     expected:
       refuse: true
+  - id: edge_missing_person_group
+    description: 스토리보드에 person_group 컬럼이 비어 있음
+    input:
+      storyboard: "인물 씬은 있으나 person_group 미표기"
+    expected:
+      checks:
+        - "생성을 시작하지 않고 shorts-storyboard로 되돌림"
+        - "임의로 그룹을 추정해 진행하지 않음"
+  - id: happy_assembly_contract
+    description: 조립 지시서가 다음 스킬의 입력 계약을 만족하는가
+    input:
+      storyboard: "확정 9씬, 인물 그룹 P1 포함"
+    expected:
+      checks:
+        - "JSON에 content_type 필드 존재"
+        - "인물 씬 clip에 person_group과 person_anchor 둘 다 채워짐"
+        - "clips[].narration에 스토리보드 나레이션 문장이 실림"
+        - "TTS 미생성 시 narration_file은 null"
+        - "'편집 앱에서 수행' 류의 수동 편집 안내가 없음"
+  - id: happy_multi_person_group
+    description: 서로 다른 인물 그룹 2개가 등장
+    input:
+      storyboard: "P1(부부) 3씬, P2(트레이너) 2씬"
+    expected:
+      checks:
+        - "그룹별로 앵커 스틸을 각각 관리"
+        - "P1 앵커를 P2 씬에 재사용하지 않음"

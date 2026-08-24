@@ -1,16 +1,17 @@
 name: shorts-storyboard
-version: 0.3.0
+version: 0.7.0
 test_cases:
   - id: happy_mixed_mode
-    description: 30초 스크립트 → 혼합(실촬영+AI) 스토리보드
+    description: 30초 판매형 스크립트 → 혼합(실촬영+AI) 스토리보드
     input:
+      content_type: "sales"
       script: "확정된 30초 스크립트"
       mode: "혼합"
       reference_a: "제품 실사진"
     expected:
       checks:
         - "씬 수 7-12개, 씬당 2-5초"
-        - "표에 시간·화면·앵글·자막·오디오 5컬럼 모두 채움"
+        - "표에 고정 8컬럼(#·시간·화면 구성·앵글/무빙·나레이션·자막·오디오·person_group) 모두 존재"
         - "AI 씬 프롬프트에 vertical 9:16 포함"
         - "자막 배치가 references/youtube-shorts-specs.md 안전영역 준수"
         - "제품 클로즈업 씬 40% 이상"
@@ -29,3 +30,44 @@ test_cases:
     expected:
       checks:
         - "shorts-script 선행을 제안하고 임의 진행하지 않음"
+  - id: happy_fixed_columns
+    description: 씬 표가 고정 8컬럼으로 산출되는가
+    input:
+      script: "확정 스크립트 + 씬 시간표"
+      mode: "혼합"
+    expected:
+      checks:
+        - "컬럼이 #·시간·화면 구성·앵글/무빙·나레이션·자막·오디오·person_group 8개"
+        - "나레이션 컬럼이 씬마다 채워짐 (없는 씬은 —)"
+        - "씬 시간이 스크립트 씬 시간표와 일치 (임의 재설계 없음)"
+        - "표 아래에 content_type과 총 길이 명시"
+  - id: happy_person_group
+    description: 같은 인물이 2개 이상 씬에 등장
+    input:
+      script: "씬 2 랠리·씬 8 하이파이브에 같은 부부"
+    expected:
+      checks:
+        - "씬 2와 씬 8에 동일한 person_group ID(P1) 부여"
+        - "산문으로 '씬 2·8은 같은 부부'라고만 쓰지 않음"
+        - "캐스팅 시트에 P1의 인물 수·연령대·의상 고정"
+        - "인물 씬 프롬프트에 연속 테이크 문구 포함"
+  - id: happy_habit_scene_rules
+    description: 습관형 스토리보드 씬 규칙
+    input:
+      content_type: "habit"
+      script: "동작 3개 35초"
+    expected:
+      checks:
+        - "동작 시연 씬 40% 이상 (상품 클로즈업 규칙은 미적용)"
+        - "동작마다 정면·측면 2각도 확보"
+        - "잘못된 자세 씬은 바른 자세 씬과 인접 배치 + ❌/⭕ 자막 구분"
+        - "안전 주의 문구를 자막 컬럼에 1회 이상 배치"
+        - "동작 시연 씬은 실촬영 우선 권장 안내"
+  - id: edge_live_action_branch
+    description: 실촬영으로 확정된 프로젝트의 다음 단계 안내
+    input:
+      mode: "실촬영"
+    expected:
+      checks:
+        - "shorts-assemble로 체이닝 제안 (publish-kit 직행 아님)"
+        - "촬영 후 클립을 연결 폴더에 넣어달라는 안내 포함"

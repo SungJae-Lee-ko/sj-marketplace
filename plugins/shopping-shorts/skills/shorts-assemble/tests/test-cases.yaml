@@ -1,5 +1,5 @@
 name: shorts-assemble
-version: 0.6.0
+version: 0.7.0
 test_cases:
   - id: happy_full_assembly
     description: 클립 8개 + 스토리보드 + 나레이션으로 전체 자동 조립
@@ -41,15 +41,53 @@ test_cases:
       checks:
         - "확보된 씬만으로 가조립할지, 기다릴지 사용자에게 질문"
         - "임의로 씬을 건너뛰고 완성본이라고 전달하지 않음"
-  - id: edge_narration_overflow
-    description: 나레이션 총 길이가 영상 총 길이보다 김
+  - id: edge_narration_overflow_minor
+    description: 나레이션이 배정 씬 길이보다 3% 김 (미세 차이)
+    input:
+      narration_scene: "3.1초"
+      scene_slot: "3.0초"
+    expected:
+      checks:
+        - "atempo로 미세 보정 (0.95~1.05 범위 내)"
+        - "보정 수치를 조립 리포트에 명시"
+  - id: edge_narration_overflow_major
+    description: 나레이션 총 길이가 영상 총 길이보다 16% 김
     input:
       narration_total: "29초"
       video_total: "25초"
     expected:
       checks:
-        - "템포 조정(atempo) 또는 씬 연장으로 자동 정합"
-        - "조정 사실을 사용자에게 고지"
+        - "15% 초과이므로 자동 처리하지 않음"
+        - "atempo로 억지 압축하지 않음 (0.9 미만 배율 금지)"
+        - "나레이션 문장 축약(shorts-script 회귀) 또는 클립 연장 재생성 중 선택을 사용자에게 요청"
+  - id: happy_narration_scan
+    description: 연결 폴더에 나레이션 mp3가 있는 경우
+    input:
+      folder: "narr01.mp3 ~ narr06.mp3 + 클립 8개"
+      storyboard: "나레이션 컬럼 채워짐"
+    expected:
+      checks:
+        - "나레이션 파일을 폴더 스캔으로 자동 발견"
+        - "파일명 씬 번호로 매칭, 애매하면 매칭표 확인 요청"
+        - "오디오 믹스가 나레이션 → 클립오디오 덕킹 → BGM 순서로 수행"
+        - "렌더 후 나레이션 씬의 오디오 무음 여부를 검수"
+  - id: edge_narration_missing_files
+    description: 스토리보드 나레이션 컬럼은 채워졌으나 오디오 파일이 없음
+    input:
+      folder: "클립만 존재"
+      storyboard: "나레이션 컬럼 채워짐"
+    expected:
+      checks:
+        - "TTS 생성을 제안하고 크레딧 소모를 사전 고지"
+        - "승인 없이 생성하지 않음"
+  - id: edge_narration_column_empty
+    description: 스토리보드 나레이션 컬럼이 통째로 비어 있음
+    input:
+      storyboard: "나레이션 컬럼 전부 공란"
+    expected:
+      checks:
+        - "임의로 나레이션을 작문하지 않음"
+        - "shorts-storyboard로 되돌림"
   - id: edge_third_party_footage
     description: 타인 저작물 영상을 조립 소재로 넣어달라는 요청
     input:

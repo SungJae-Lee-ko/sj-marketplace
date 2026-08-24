@@ -1,5 +1,5 @@
 name: shorts-script
-version: 0.3.0
+version: 0.7.0
 test_cases:
   - id: happy_full_input
     description: 상품·타깃·레퍼런스 모두 제공 시 정상 스크립트 생성
@@ -53,3 +53,44 @@ test_cases:
         - "훅 감점(인사말 시작)과 셀링포인트 감점(5개 나열) 검출"
         - "최우선 수정 1개 + 구체 교체안 제시"
         - "임의 재작성하지 않고 재작성 여부를 제안으로 물음"
+  - id: happy_habit_type
+    description: 상품 없는 습관·정보형 요청 (채널 주력 유형)
+    input:
+      topic: "무릎 지키는 3분 습관"
+      target: "계단이 무서워진 40-50대"
+      product: null
+    expected:
+      checks:
+        - "content_type을 habit으로 판별하고 산출물 머리에 명시"
+        - "[습관·정보형] 브리프 적용, 상품 카테고리 브리프는 미적용"
+        - "습관형 5단계(훅-통념깨기-방법-근거주의-실행CTA) 사용"
+        - "동작 3개 이하, 동작마다 이름·횟수·주의 3요소 포함"
+        - "안전 주의 문구 1개 이상 포함"
+        - "CTA가 실행 유도이며 구매·제휴 링크 없음"
+        - "치료·완치·예방 등 의료 단정 표현 없음"
+        - "산출 후 의료 단정 표현 자체 점검 결과 표기"
+  - id: edge_type_ambiguous
+    description: 습관 주제인데 마지막에 제품을 얹는 혼합 요청
+    input:
+      topic: "무릎 습관 알려주고 마지막에 폼롤러 링크 붙여줘"
+    expected:
+      checks:
+        - "판매형(sales)으로 처리"
+        - "훅·구조는 습관형을 쓰되 CTA만 판매형으로 간다고 고지"
+        - "제휴 고지 의무가 발생함을 안내"
+  - id: happy_scene_timing_table
+    description: 씬 시간표가 나레이션 실측 기준으로 산출되는가
+    input:
+      script_request: "35초 습관형"
+    expected:
+      checks:
+        - "구간별 [음절수 → 예상 초 → 배정 초] 표를 산출물에 포함"
+        - "예상 초 = 음절수 ÷ 4.5 + 0.4 공식 적용"
+        - "총 길이 초과 시 씬을 늘리지 않고 나레이션 문장을 줄임"
+  - id: edge_hook_reference_by_id
+    description: 훅 참조가 고정 ID로 이뤄지는가
+    input:
+      product: "유산균 영양제"
+    expected:
+      checks:
+        - "훅을 H1~H8 ID로 지정 (순번 '④' 식 표기 사용 안 함)"

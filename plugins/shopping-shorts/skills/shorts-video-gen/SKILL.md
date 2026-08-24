@@ -4,7 +4,7 @@ description: >
   [책임 경계] 쇼핑쇼츠 영상 생성 오케스트레이터. shorts-storyboard의 씬별 콘티를 받아 씬 스틸 이미지 생성 → image-to-video 변환 → 클립 검수까지 생성 실행 체인을 담당한다. 프롬프트 설계는 shorts-storyboard, 생성 실행은 본 스킬.
   "영상 생성해줘", "이 스토리보드로 영상 만들어줘", "AI로 씬 뽑아줘", "클립 생성", "쇼츠 영상 렌더링" 요청 시 반드시 사용.
   씬 역할별 모션 프리셋 자동 매핑 + 생성 전 비용 추정 고지 + 인물 일관성 3중 장치(스틸 고정 필수 체인·씬 간 인물 소스 재사용·인물 씬 모션 제한) + 플랜 제약 모델 폴백 지원. Higgsfield 등 영상 생성 MCP를 시작 시 자동 연동 확인하고, 제품 자료는 업로드 위젯 드래그앤드롭을 기본 경로로 받는다 (연결된 로컬 폴더 자동 스캔으로 올릴 파일 안내).
-version: "0.5.1"
+version: "0.7.0"
 ---
 
 # 쇼핑쇼츠 영상 생성 (Video Generation Orchestrator)
@@ -13,7 +13,7 @@ version: "0.5.1"
 
 ## 사전 조건 (모두 충족해야 시작)
 
-1. shorts-storyboard 산출물이 확정됨 (없으면 그 스킬로 먼저)
+1. shorts-storyboard 산출물이 확정됨 (없으면 그 스킬로 먼저). **씬 표의 8개 고정 컬럼(#·시간·화면 구성·앵글/무빙·나레이션·자막·오디오·person_group)이 모두 채워져 있어야 한다** — `person_group`이 비어 있으면 인물 일관성 규칙을 적용할 근거가 없으므로 스토리보드로 되돌린다
 2. **영상 생성 MCP(Higgsfield 등) 자동 연동 확인** — 스킬 시작 시 가벼운 호출(잔액 조회 등)로 연결을 스스로 검증한다. 연결돼 있으면 사용자에게 다시 묻지 않고 그대로 사용하고, 미연결이면 커넥터 연결을 제안한다. 연결 자체가 불가하면 씬별 프롬프트만 정리해 주고 종료
 3. **생성 전 비용 추정 고지 + 사용자 승인** (아래 비용 섹션) — 승인 없이 생성 호출 금지
 4. **A자료(제품 사진) 업로드 — 직접 전송 우선, 위젯은 폴백** — 먼저 환경의 네트워크로 직접 업로드(presigned URL에 PUT)를 1회 시도한다. 성공하면 사용자 개입 없이 전 과정 자동. 실패(egress 차단, CONNECT 403 등)하면 재시도하지 말고 업로드 위젯(`media_upload_widget` 류)으로 전환해 드래그앤드롭으로 받는다 — 위젯은 사용자 브라우저가 직접 올리므로 환경 차단과 무관하다. 차단 환경이면 네트워크 허용 목록에 Higgsfield 전송 도메인(결과물·입력 CDN 및 `*.s3.amazonaws.com`) 추가를 1회 안내한다 — 추가되면 이후 다운로드·업로드 모두 자동화된다
@@ -87,9 +87,9 @@ version: "0.5.1"
 ## 인물 일관성 규칙 (단일 영상 내)
 
 - **a. 씬 내 일관성 — 스틸 고정**: 인물 등장 씬은 반드시 Step 1 스틸 → start_image i2v 체인으로 생성한다. 스틸 한 프레임에 인물·의상·구도가 고정되므로 클립 중간에 사람이 바뀔 여지가 없다
-- **b. 씬 간 일관성 — 앵커 스틸 재사용**: 같은 인물이 나오는 씬들은 **첫 인물 씬의 스틸을 앵커**로 삼는다. 이후 씬의 스틸을 생성할 때 앵커 스틸을 인물 참조로 함께 전달해 "same people as the reference image, different pose/angle"로 지시한다 (character_id가 있으면 그것이 우선)
+- **b. 씬 간 일관성 — 앵커 스틸 재사용**: **스토리보드의 `person_group` ID가 기준이다.** 같은 `person_group`을 가진 씬들은 **그 그룹의 첫 인물 씬 스틸을 앵커**로 삼는다. 이후 씬의 스틸을 생성할 때 앵커 스틸을 인물 참조로 함께 전달해 "same people as the reference image, different pose/angle"로 지시한다 (character_id가 있으면 그것이 우선). 그룹별로 앵커를 따로 관리한다 — `P1`의 앵커를 `P2` 씬에 쓰지 않는다
 - **c. 스틸 승인 게이트**: 인물 앵커 스틸은 영상 변환 전에 사용자에게 보여주고 확인받는다 — 스틸 재생성은 클립 재생성보다 수 배 싸다. 스틸이 승인된 뒤에만 i2v 크레딧을 쓴다
-- **d. 검수 연동**: Step 3에서 "클립 중간 인물 교체 없음 + 씬 간 동일 인물 유지"를 명시적 체크 항목으로 확인한다
+- **d. 검수 연동**: Step 3에서 "클립 중간 인물 교체 없음 + **같은 `person_group` 씬 간 동일 인물 유지**"를 명시적 체크 항목으로 확인한다. shorts-auditor도 같은 ID를 기준으로 프레임을 대조한다
 
 ## 모델 폴백 규칙 (플랜·환경 제약 대응)
 
@@ -120,18 +120,29 @@ version: "0.5.1"
 
 ## 출력 형식 (조립 지시서)
 
+**이 지시서는 shorts-assemble의 입력 데이터다.** 사람이 읽는 편집 순서표가 아니라 다음 스킬이 파싱하는 계약이므로, 필드명을 임의로 바꾸거나 빼지 않는다. 필드명은 스토리보드 컬럼명과 일치시킨다.
+
 ```json
 {
   "storyboard_ref": "제품명-v1",
+  "content_type": "sales",
   "character_id": null,
   "clips": [
     {"scene": 1, "role": "hook", "duration": 5, "trim_to": "0.0-3.0",
      "motion": "impact_zoom", "source": "A자료 hero.jpg", "url": "...",
+     "person_group": null, "person_anchor": null,
+     "narration": "이게 된다고?", "narration_file": null,
+     "review": "pass"},
+    {"scene": 2, "role": "usage", "duration": 5, "trim_to": "0.5-5.0",
+     "motion": "handheld", "source": "still_p1_anchor.png", "url": "...",
+     "person_group": "P1", "person_anchor": "still_p1_anchor.png",
+     "narration": "둘이서도 충분해요", "narration_file": "narr02.mp3",
      "review": "pass"}
   ],
   "assembly": {
     "sequence": [1,2,3],
     "subtitles": "스토리보드 자막 컬럼 참조",
+    "narration": "clips[].narration_file 참조 (없으면 assemble이 TTS 생성 여부를 확인)",
     "bgm_cue": "스토리보드 오디오 컬럼 참조",
     "export": "9:16 1080×1920, 씬별 trim_to 구간만 사용"
   },
@@ -140,8 +151,10 @@ version: "0.5.1"
 ```
 
 - `trim_to`: 생성 클립(5초)에서 실제 씬 길이(예: 3초)만큼 잘라 쓸 구간
-- 인물 씬 클립에는 `person_anchor` 필드로 사용한 앵커 스틸(또는 character_id)을 기록해 추적 가능하게 한다
-- 조립은 사용자가 편집 앱(CapCut 등)에서 수행 — 이 지시서가 편집 순서표 역할
+- `content_type`: 스토리보드에서 받은 값을 그대로 싣는다 — 조립·검수·발행이 이 값으로 분기한다
+- `person_group`: **스토리보드 씬 표의 값과 같은 ID.** 인물 없는 씬은 `null`
+- `person_anchor`: 그 그룹에 실제로 사용한 앵커 스틸 파일명(또는 character_id). `person_group`이 있으면 반드시 채운다 — 검수가 대조할 근거다
+- `narration` / `narration_file`: 스토리보드 나레이션 컬럼의 문장과, TTS를 이미 생성했다면 그 파일명. 생성 전이면 `narration_file`은 `null`로 두고 문장만 싣는다
 - 클립 URL은 만료될 수 있음을 지시서에 명기하고 즉시 다운로드를 권장한다
 
 ## 이 스킬을 사용하지 말아야 할 때
@@ -152,5 +165,7 @@ version: "0.5.1"
 - **상세페이지용 이미지 세트** → 본 플러그인 범위 밖 (상세페이지 이미지 전용 스킬 사용)
 
 ## 다음 단계 (체이닝)
+
+체인 위상: **shorts-script → shorts-storyboard → shorts-video-gen(AI 생성 시) → shorts-assemble → shorts-publish-kit**
 
 클립 세트가 나오면 **자동 조립이 기본 경로**다: "클립을 연결 폴더에 넣어주시면 자막·전환·오디오까지 자동 조립해 완성 MP4를 만들어 드릴까요?" → **shorts-assemble**로 진행 (조립 지시서는 assemble의 입력 데이터가 된다 — 사용자에게 수동 편집을 요구하지 않는다). 완성본이 나오면 shorts-publish-kit으로 이어가며 AI 생성 사실을 전달한다 (합성 콘텐츠 공개 설정 체크리스트 반영).
