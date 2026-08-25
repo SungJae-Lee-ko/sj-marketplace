@@ -1,5 +1,5 @@
 name: shorts-assemble
-version: 0.7.0
+version: 0.7.1
 test_cases:
   - id: happy_full_assembly
     description: 클립 8개 + 스토리보드 + 나레이션으로 전체 자동 조립
@@ -58,7 +58,7 @@ test_cases:
     expected:
       checks:
         - "15% 초과이므로 자동 처리하지 않음"
-        - "atempo로 억지 압축하지 않음 (0.9 미만 배율 금지)"
+        - "atempo로 억지 압축하지 않음 (허용 범위 0.95~1.05 밖 배율 금지)"
         - "나레이션 문장 축약(shorts-script 회귀) 또는 클립 연장 재생성 중 선택을 사용자에게 요청"
   - id: happy_narration_scan
     description: 연결 폴더에 나레이션 mp3가 있는 경우
@@ -96,3 +96,82 @@ test_cases:
       refuse: true
       checks:
         - "분석 전용 원칙 안내 (shorts-storyboard 참고 영상 분석 절차로 라우팅)"
+  - id: edge_review_gate
+    description: 검수에서 떨어진 클립이 완성본에 실리지 않는가
+    input:
+      instruction: "clips[3].review = fail, clips[5].review = manual"
+    expected:
+      checks:
+        - "review가 pass가 아닌 클립을 조립에 넣지 않음"
+        - "fail 클립은 재생성·실촬영 선택을 사용자에게 요청"
+        - "manual 클립은 사용자 확인 후 진행"
+        - "제외 사유를 조립 리포트에 기재"
+  - id: edge_narration_overflow_mid_band
+    description: 나레이션이 배정 씬 길이보다 9% 김 (5~15% 밴드)
+    input:
+      narration_scene: "4.36초"
+      scene_slot: "4.0초"
+    expected:
+      checks:
+        - "atempo가 아니라 trim_to 구간을 조정해 씬 길이를 맞춤"
+        - "총 길이 변화를 사용자에게 고지"
+        - "씬 시간표를 갱신하고 갱신본을 리포트에 실음"
+        - "최종 길이 검증은 갱신본 ±0.5초 기준으로 수행"
+  - id: happy_subtitle_timing_from_scene
+    description: 자막 타이밍이 씬 구간에서 나오는가
+    input:
+      storyboard: "씬 4 자막 '무릎 부담 / 절반으로', 씬 구간 4초"
+    expected:
+      checks:
+        - "자막 텍스트는 자막 컬럼에서, 타이밍은 씬 시간표의 씬 구간에서 가져옴"
+        - "' / '로 나뉜 2줄을 씬 구간 4초에 균등 분할(2초씩) 배치"
+        - "나레이션 컬럼을 자막으로 쓰지 않음"
+  - id: happy_habit_assembly
+    description: 습관형 완성본 조립
+    input:
+      content_type: "habit"
+      storyboard: "안전 주의 자막 1회 + 카운트 자막 '10회 × 3세트'"
+    expected:
+      checks:
+        - "안전 주의 문구 자막을 반드시 번인"
+        - "횟수·시간 카운트 자막을 번인"
+        - "리포트에 content_type: habit과 sales_form: null을 실어 publish-kit으로 전달"
+  - id: edge_live_action_no_trim_to
+    description: 실촬영 경로 — 조립 지시서가 없어 trim_to도 없음
+    input:
+      clips: "실촬영 클립 8개"
+      storyboard: "씬 표 + 씬 시간표"
+    expected:
+      checks:
+        - "씬 시간표의 배정 초만큼 잘라 씀"
+        - "사용 구간을 사용자에게 확인받음 (기본 제안: 앞 0.3초 버리고 배정 초만큼)"
+        - "스토리보드 표 아래의 content_type·sales_form을 읽어 하류로 전달"
+  - id: edge_no_scene_timing
+    description: 씬 시간표가 아예 없는 스토리보드
+    input:
+      storyboard: "씬 표만 있고 씬 시간표 없음"
+    expected:
+      checks:
+        - "씬 표 시간 컬럼만으로 추정해 진행하지 않음"
+        - "shorts-storyboard로 되돌림"
+  - id: happy_multicut_scene
+    description: 멀티컷 씬(습관형 동작 시연) 조립
+    input:
+      instruction: "씬 4가 cut 1·2·3, cut_seconds 1.4/1.4/1.2, 배정 4.0초"
+      folder: "scene4-1.mp4, scene4-2.mp4, scene4-3.mp4"
+    expected:
+      checks:
+        - "씬 오름차순 → 같은 씬 안에서 cut 오름차순으로 연결"
+        - "각 컷을 cut_seconds 길이로 트림"
+        - "cut_seconds 합이 배정 초와 다르면 shorts-video-gen으로 되돌림"
+        - "나레이션은 씬 시작 시각에 한 번만 배치"
+  - id: edge_review_gate_length_recalc
+    description: review 게이트로 씬을 제외했을 때 길이 재계산
+    input:
+      instruction: "clips[6].review = fail, 해당 씬 배정 3.0초, 나레이션 있음"
+    expected:
+      checks:
+        - "제외 씬 행을 씬 시간표에서 빼고 총 길이 재합산"
+        - "±0.5초 검증을 갱신본 기준으로 수행 (제외 전 값과 대조하지 않음)"
+        - "나레이션이 있던 씬이므로 재생성·문장 이동·제외 중 선택을 사용자에게 요청"
+        - "제외 씬 번호와 갱신 총 길이를 리포트에 기재"

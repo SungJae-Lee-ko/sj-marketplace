@@ -1,5 +1,5 @@
 name: shorts-script
-version: 0.7.0
+version: 0.7.1
 test_cases:
   - id: happy_full_input
     description: 상품·타깃·레퍼런스 모두 제공 시 정상 스크립트 생성
@@ -78,15 +78,34 @@ test_cases:
         - "판매형(sales)으로 처리"
         - "훅·구조는 습관형을 쓰되 CTA만 판매형으로 간다고 고지"
         - "제휴 고지 의무가 발생함을 안내"
-  - id: happy_scene_timing_table
-    description: 씬 시간표가 나레이션 실측 기준으로 산출되는가
+  - id: happy_narration_timing_table
+    description: 나레이션 시간표가 문장 단위로 산출되는가 (씬 시간표는 만들지 않는다)
     input:
       script_request: "35초 습관형"
     expected:
       checks:
-        - "구간별 [음절수 → 예상 초 → 배정 초] 표를 산출물에 포함"
+        - "문장 ID(N1, N2 …)가 붙은 [문장 → 구간 → 음절수 → 예상 초] 표를 산출"
         - "예상 초 = 음절수 ÷ 4.5 + 0.4 공식 적용"
-        - "총 길이 초과 시 씬을 늘리지 않고 나레이션 문장을 줄임"
+        - "씬 단위 배정 초 컬럼을 만들지 않음 (씬 확정은 shorts-storyboard 책임)"
+        - "총 길이 초과 시 시간을 늘리지 않고 나레이션 문장을 줄임"
+        - "±5% 등 자체 허용 오차를 새로 정의하지 않음 (기준은 shorts-assemble 하나)"
+  - id: happy_sales_form_capture
+    description: 판매 형태가 체인 값으로 확정되는가
+    input:
+      product: "쿠팡 파트너스로 소개할 무릎 보호대"
+    expected:
+      checks:
+        - "sales_form을 affiliate로 확정하고 산출물 머리에 명시"
+        - "제휴 시 제품 AI 재생성 제한이 하류로 전달됨을 안내"
+        - "habit 요청이면 sales_form: null이 정상"
+  - id: edge_ai_scene_length_not_multiple_of_5
+    description: AI 생성 씬이 있어도 씬 길이를 5초 배수로 맞추지 않는가
+    input:
+      script_request: "3초 훅 + AI 생성 씬 포함 30초"
+    expected:
+      checks:
+        - "훅 길이를 3초로 유지 (5초로 늘리지 않음)"
+        - "생성은 5초 단위, 사용은 트림이라고 안내"
   - id: edge_hook_reference_by_id
     description: 훅 참조가 고정 ID로 이뤄지는가
     input:

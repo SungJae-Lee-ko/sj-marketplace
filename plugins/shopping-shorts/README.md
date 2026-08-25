@@ -19,9 +19,9 @@ shorts-script ─→ shorts-storyboard ─┬─→ shorts-video-gen ─→ shor
 
 | 스킬 | 하는 일 | 트리거 예시 |
 |------|---------|------------|
-| `shorts-script` | 콘텐츠 유형 판별 → 30-45초 스크립트 + 나레이션 실측 기준 씬 시간표. 기존 스크립트 100점 진단 모드 | "이 상품으로 쇼츠 대본 써줘", "내 쇼츠 뭐가 문제야" |
-| `shorts-storyboard` | 고정 8컬럼 씬 표(나레이션·person_group 포함) · 앵글 · 전환 · AI 생성 프롬프트 | "스토리보드 만들어줘", "씬 나눠줘" |
-| `shorts-video-gen` | 씬 스틸 생성 → image-to-video → 클립 검수 → 조립 지시서. 인물 일관성 3중 장치 | "영상 생성해줘", "클립 뽑아줘" |
+| `shorts-script` | 콘텐츠 유형·판매 형태 판별 → 15-60초(기본 30-45초) 스크립트 + 문장 단위 나레이션 시간표. 기존 스크립트 100점 진단 모드 | "이 상품으로 쇼츠 대본 써줘", "무릎 습관 쇼츠 대본", "내 쇼츠 뭐가 문제야" |
+| `shorts-storyboard` | 고정 8컬럼 씬 표(나레이션·person_group 포함) · **씬 시간표 확정** · 앵글 · 전환 · AI 생성 프롬프트 | "스토리보드 만들어줘", "씬 나눠줘" |
+| `shorts-video-gen` | 씬 스틸 생성 → image-to-video → 클립 검수 → 조립 지시서. 인물 일관성 3중 장치 · 판매형/습관형 생성 경로 분기 | "영상 생성해줘", "클립 뽑아줘" |
 | `shorts-assemble` | 클립·나레이션 수집 → 길이 정합 → 오디오 믹스 → 자막 번인 → 완성 MP4 | "조립해줘", "최종 영상 만들어줘" |
 | `shorts-publish-kit` | 제목 3안 · 설명문 · 해시태그 · 고정댓글 · 업로드 체크리스트 | "업로드 준비해줘" |
 
@@ -32,20 +32,22 @@ shorts-script ─→ shorts-storyboard ─┬─→ shorts-video-gen ─→ shor
 - **`shorts-producer`** — "○○ 쇼츠 처음부터 끝까지 만들어줘" 한 마디로 5스킬 체인 전체 주행. 비용·스틸 승인 게이트는 유지합니다
 - **`shorts-auditor`** — 발행 전 읽기 전용 검수: 스크립트 채점 · 스토리보드 정합 · 영상 규격 · 나레이션 · 인물/제품 일관성 · 법규와 고지를 증거 기반 PASS/FAIL로 판정. 파일은 수정하지 않습니다
 
-## 체인이 나르는 값 3가지
+## 체인이 나르는 값 4가지
 
 스킬 간 계약입니다. 단계마다 다음 스킬로 반드시 넘어갑니다.
 
 | 값 | 만드는 곳 | 쓰는 곳 |
 |---|---|---|
-| `content_type` (`sales`/`habit`) | shorts-script | 스토리보드 씬 규칙 · 검수 기준 · publish-kit 고지 요건 |
-| **씬 시간표** (음절수→예상 초→배정 초) | shorts-script | 스토리보드 씬 시간 · assemble 길이 정합 |
+| `content_type` (`sales`/`habit`) | shorts-script | 스토리보드 씬 규칙 · **video-gen 생성 경로** · 검수 기준 · publish-kit 고지 요건 |
+| `sales_form` (`own`/`resell`/`affiliate`/`sponsored`) | shorts-script | video-gen의 제품 AI 재생성 제한 · publish-kit 고지 표 |
+| **씬 시간표** (씬 단위: 예상 초→배정 초→실측 초) | shorts-storyboard (script의 문장 단위 시간표를 받아 확정) | video-gen 클립 길이 · assemble 길이 정합·자막 타이밍 |
 | `person_group` (`P1`, `P2` …) | shorts-storyboard | video-gen 앵커 스틸 관리 · auditor 프레임 대조 |
 
 ## 핵심 설계
 
 - **인물 일관성** — 인물 등장 씬은 스틸 고정 → image-to-video 필수 체인. `person_group`별로 앵커 스틸을 따로 관리해 identity switching을 막습니다 (실제 실패 사례 기반)
-- **나레이션이 씬 시간을 정한다** — 스크립트 단계에서 나레이션 음절 수로 씬 시간을 확정하고, 조립은 그 값을 검증만 합니다. 배속(atempo) 보정은 ±5% 이내로 제한합니다
+- **나레이션이 시간을 정한다** — 스크립트가 문장별 음절 수로 예상 시간을 내고, 스토리보드가 이를 **씬 단위 씬 시간표**로 확정합니다. 조립은 그 값을 검증만 하며 배속(atempo) 보정은 0.95~1.05로 제한합니다
+- **습관형도 AI로 만든다** — 상품이 없으면 캐스팅 시트로 인물 앵커 스틸을 만들고, 동작은 시작·정점 2스틸 교차컷 + 카운트 자막으로 전달합니다 (실촬영이 1순위인 것은 그대로)
 - **조립은 코드로** — ffmpeg 자동 렌더. 편집 앱 없이 완성 MP4를 산출합니다
 - Higgsfield 등 영상 생성 MCP 자동 연동, 직접 전송 우선 (egress 허용 시 완전 자동)
 - 타인 영상은 분석 전용, 자사 소재만 생성·조립 소스로 사용

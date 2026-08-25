@@ -1,5 +1,5 @@
 name: shorts-video-gen
-version: 0.7.0
+version: 0.7.1
 test_cases:
   - id: happy_first_run
     description: 9씬 스토리보드 첫 생성 실행
@@ -64,3 +64,86 @@ test_cases:
       checks:
         - "그룹별로 앵커 스틸을 각각 관리"
         - "P1 앵커를 P2 씬에 재사용하지 않음"
+  - id: happy_habit_generation_path
+    description: 습관형(상품 없음) 영상 생성이 A자료 없이 완주하는가
+    input:
+      content_type: "habit"
+      storyboard: "동작 2개 9씬 + 캐스팅 시트 P1"
+      reference_a: null
+    expected:
+      checks:
+        - "A자료 업로드를 요구하지 않고 진행 (사전 조건 5-A는 sales 한정)"
+        - "캐스팅 시트로 P1 앵커 스틸을 먼저 생성"
+        - "앵커 스틸 승인 게이트를 거친 뒤 i2v 크레딧 사용"
+        - "A자료 없음을 이유로 중단하지 않음"
+  - id: happy_habit_two_stills_per_motion
+    description: 동작 시연이 2스틸 교차컷으로 만들어지는가
+    input:
+      content_type: "habit"
+      scene: "동작 1개, 배정 4초"
+    expected:
+      checks:
+        - "시작 자세(정면)·정점 자세(측면) 스틸 2장 생성"
+        - "두 스틸을 같은 앵커·의상·배경으로 생성"
+        - "배정 4초이므로 시작→정점→시작 3컷으로 확장"
+        - "횟수·시간 카운트 자막이 스토리보드에 없으면 되돌림"
+        - "비용 추정에 씬당 스틸 2장·클립 2개로 반영"
+  - id: edge_habit_live_action_refused
+    description: 실촬영 권고를 사용자가 거부한 경우
+    input:
+      content_type: "habit"
+      user: "실촬영은 못 해요"
+    expected:
+      checks:
+        - "2스틸 교차컷을 표준 경로로 진행"
+        - "동작이 읽히지 않으면 다이어그램형(정지 스틸+화살표+카운트 자막) 폴백 제시"
+        - "사용한 경로를 clips[].note에 기록"
+  - id: edge_no_person_in_video
+    description: 인물이 전혀 없는 기획 (person_group 전 씬 —)
+    input:
+      storyboard: "제품 단독 9씬, person_group 전부 —"
+    expected:
+      checks:
+        - "스토리보드로 되돌리지 않고 제품 단독 모드로 진행"
+        - "인물 일관성 규칙을 적용하지 않음"
+  - id: edge_affiliate_product_regeneration
+    description: 제휴 상품을 AI로 재생성하려 할 때
+    input:
+      sales_form: "affiliate"
+      request: "쿠팡 상세 이미지로 제품 클립 만들어줘"
+    expected:
+      checks:
+        - "제품 AI 재생성을 진행하지 않고 사유 고지"
+        - "공식 제공 소재·실촬영 경로를 제안"
+        - "AI는 배경·상황 씬에만 사용"
+  - id: happy_review_field_recorded
+    description: 클립 검수 결과가 review 필드로 기록되는가
+    input:
+      scene_result: "씬 3 로고 깨짐 2회 실패, 씬 5는 파일 확인 불가"
+    expected:
+      checks:
+        - "씬 3의 review가 fail"
+        - "씬 5의 review가 manual (사용자 확인 대체)"
+        - "나머지는 pass"
+        - "role 값이 영문 키(hook/product_closeup/usage/demo/evidence/cta)"
+  - id: edge_plan_gated_model
+    description: 플랜 제한으로 상위 모델이 거부됨
+    input:
+      error: "Requires plus plan"
+    expected:
+      checks:
+        - "경량/하위 모델로 폴백"
+        - "단가를 다시 preflight 하고 비용 재승인"
+        - "캐릭터 등록이 막히면 앵커 스틸 방식으로 대체"
+  - id: happy_multicut_serialization
+    description: 한 씬이 클립 2~3개일 때 조립 지시서 표기
+    input:
+      content_type: "habit"
+      scene: "씬 4 동작 시연, 배정 4.0초, 3컷"
+    expected:
+      checks:
+        - "clips[]에 scene 4 항목이 cut 1·2·3으로 세 개 존재"
+        - "cut_seconds 합이 씬 배정 초 4.0과 정확히 일치"
+        - "나레이션은 cut 1에만 실리고 나머지 컷은 narration_file null"
+        - "파일명 규칙 scene4-1 / scene4-2 / scene4-3 안내"
+        - "assembly.sequence에는 씬 번호만 적고 컷 순서는 cut 오름차순"

@@ -1,16 +1,17 @@
 name: shorts-publish-kit
-version: 0.7.0
+version: 0.7.1
 test_cases:
   - id: happy_full_chain
     description: 체인 완주 후 발행 키트 생성
     input:
-      chain: "script→storyboard→video-gen 완료, AI 클립 포함, 판매 형태=제휴"
+      chain: "script→storyboard→video-gen→assemble 완료, AI 클립 포함, sales_form=affiliate"
     expected:
       checks:
         - "산출물 5종 모두 존재(제목3안·설명·해시태그·고정댓글·체크리스트)"
         - "제목 3안이 서로 다른 방향(검색형/호기심형/타깃호명형)"
         - "제목에 #shorts 없음, 설명란에 있음"
-        - "제휴 수수료 표기 문구 설명문에 포함"
+        - "제휴 수수료 표기 문구가 설명란과 고정댓글 양쪽에 포함 (한쪽만이면 검수 FAIL)"
+        - "설명란 고지가 첫 3줄 안에 배치"
         - "체크리스트에 합성 콘텐츠 공개 설정 항목 포함"
         - "해시태그 10-15개, 대형3+중형5+니치5 비율"
   - id: edge_standalone_call
@@ -25,7 +26,7 @@ test_cases:
     description: 제휴 마케팅 영상의 고지 위치
     input:
       content_type: "sales"
-      sales_form: "쿠팡 파트너스"
+      sales_form: "affiliate"
     expected:
       checks:
         - "수수료 고지 문구가 설명란에 포함"
@@ -52,3 +53,23 @@ test_cases:
       checks:
         - "유형 불일치를 지적하고 판매형 고지 요건 적용 여부를 1회 확인"
         - "확인 없이 고지를 생략하지 않음"
+  - id: happy_resell_disclosure
+    description: 리셀·위탁판매 고지
+    input:
+      content_type: "sales"
+      sales_form: "resell"
+    expected:
+      checks:
+        - "고지 표의 resell 행 기준으로 설명란·고정댓글 권장 문구 제시"
+        - "제조사 제공 이미지가 아님을 오해 없게 표기"
+        - "제휴 수수료 문구를 잘못 붙이지 않음"
+  - id: happy_sponsored_disclosure
+    description: 유료광고·협찬 고지
+    input:
+      content_type: "sales"
+      sales_form: "sponsored"
+    expected:
+      checks:
+        - "'유료 광고 포함' 문구가 설명란·고정댓글 양쪽에 존재"
+        - "설명란 고지가 첫 3줄 안에 배치"
+        - "체크리스트에 유튜브 유료 프로모션 체크 항목 포함"
