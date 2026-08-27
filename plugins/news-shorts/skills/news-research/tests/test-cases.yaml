@@ -1,5 +1,5 @@
 name: news-research
-version: 0.1.0
+version: 0.1.1
 test_cases:
   - id: happy_keyword_only
     description: 키워드 하나만 주어졌을 때 정상 리서치

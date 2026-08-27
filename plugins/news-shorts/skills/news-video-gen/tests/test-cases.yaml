@@ -1,5 +1,5 @@
 name: news-video-gen
-version: 0.1.0
+version: 0.1.1
 test_cases:
   - id: happy_no_person
     description: 인물 없는 뉴스형 기획 (데이터 카드 위주)

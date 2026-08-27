@@ -1,5 +1,5 @@
 name: news-verify
-version: 0.1.0
+version: 0.1.1
 test_cases:
   - id: happy_full_ledger
     description: 원장과 이슈가 모두 주어진 정상 검증
@@ -97,6 +97,25 @@ test_cases:
       checks:
         - "그 자리에서 최소 원장을 만들고 등급·발행일·1차2차를 채움"
         - "원장 없이 검증하지 않음"
+  - id: gate5_grade_certainty_over_design
+    description: 체계적 문헌고찰(overview)인데 GRADE 확실성이 very low
+    input:
+      source: "RMD Open 2026, overview of SRs + RCTs, certainty of evidence = very low, 저자 결론 'largely inconclusive'"
+    expected:
+      checks:
+        - "설계(체계적 문헌고찰)로 E2를 주지 않고 GRADE 상한을 적용해 E3로 판정"
+        - "GRADE 확실성 필드를 카드에 기록"
+        - "저자가 inconclusive라고 밝혔으므로 근거부재에 준해 취급"
+        - "금지 화법에 '뒤집혔다', '밝혀졌다' 명시"
+        - "통념 반박 근거로 쓰지 않도록 카드에 제약 기재"
+  - id: gate5_clinical_significance
+    description: 평균차 -10.8인데 원문이 임상적으로 의미 없다고 명시
+    expected:
+      checks:
+        - "임상적 유의성: 미달(원문 명시) 기록"
+        - "허용 화법에 '수치와 그 사실을 같은 문장에' 제약 기재"
+        - "금지 화법에 '수치만 자막 단독 표기' 기재"
+        - "MCID를 원문에서 확인 못 하면 미확인으로 기록하고 크기를 단정하지 않음"
   - id: expiry_reason_priority
     description: 시행일이 15일 뒤인 정책 소재
     expected:

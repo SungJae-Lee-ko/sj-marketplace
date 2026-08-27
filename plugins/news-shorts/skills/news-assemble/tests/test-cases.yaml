@@ -1,5 +1,5 @@
 name: news-assemble
-version: 0.1.0
+version: 0.1.1
 test_cases:
   - id: happy_full_assembly
     description: 지시서·클립·나레이션이 모두 갖춰진 정상 조립

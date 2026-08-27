@@ -1,5 +1,5 @@
 name: news-publish-kit
-version: 0.1.0
+version: 0.1.1
 test_cases:
   - id: happy_full_kit
     description: 체인 완주 후 6종 + 정정 점검 예약 산출

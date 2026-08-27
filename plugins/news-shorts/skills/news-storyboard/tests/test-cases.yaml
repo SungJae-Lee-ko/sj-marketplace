@@ -1,5 +1,5 @@
 name: news-storyboard
-version: 0.1.0
+version: 0.1.1
 test_cases:
   - id: happy_full_chain
     description: 대본·카드·시간표를 모두 받은 정상 스토리보드

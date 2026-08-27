@@ -1,5 +1,5 @@
 name: news-script
-version: 0.1.0
+version: 0.1.1
 test_cases:
   - id: happy_myth_type
     description: 통념 검증형 대본 생성
@@ -54,7 +54,7 @@ test_cases:
     description: 탈락 목록의 주장이 대본에 등장
     expected:
       checks:
-        - "자체 점검 11항에서 검출"
+        - "자체 점검 13항에서 검출"
         - "해당 문장 제거"
   - id: freshness_per_sentence
     description: 세트 freshness는 A인데 D 카드로 만든 문장
@@ -104,6 +104,26 @@ test_cases:
       checks:
         - "사실만 가져오고 문장은 새로 작성"
         - "직접 인용이 필요하면 한 문장 이내 + 따옴표 + 출처 명시"
+  - id: myth_downgrade_to_issue
+    description: 통념 반박 근거가 GRADE very low라 E3로 내려앉음
+    input:
+      topic: "운동이 관절염 통증에 도움 된다는 통념"
+      card: "F2 (overview of SRs, GRADE very low, 저자 'inconclusive')"
+    expected:
+      checks:
+        - "myth를 포기하고 content_type을 issue로 전환"
+        - "전환 사유를 산출물 머리에 한 줄 기재"
+        - "훅을 H10·H6에서 고르고 H4·H8을 쓰지 않음"
+        - "제목·자막에 '사실은', '뒤집혔다'를 쓰지 않음"
+        - "현행 권고(질병관리청·학회)를 함께 전하고 '지금 바꿀 이유는 아직 없다' 취지로 마무리"
+        - "소재를 폐기하지 않음"
+  - id: clinical_significance_narration
+    description: 임상적 유의성 미달 카드의 수치를 쓰는 문장
+    expected:
+      checks:
+        - "수치와 '체감할 만한 차이는 아니다' 취지를 같은 문장 또는 다음 문장에 배치"
+        - "나레이션 필수 — 자막 전용 이관 금지"
+        - "자막에 수치만 단독으로 넣지 않음"
   - id: guard_no_target_naming
     description: 통념을 퍼뜨린 특정 유튜버를 지목하려는 경우
     expected:
