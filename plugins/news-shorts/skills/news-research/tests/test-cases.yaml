@@ -1,0 +1,61 @@
+name: news-research
+version: 0.1.0
+test_cases:
+  - id: happy_keyword_only
+    description: 키워드 하나만 주어졌을 때 정상 리서치
+    input:
+      keyword: "무릎건강"
+    expected:
+      checks:
+        - "검색 전에 오늘 날짜(collected_at)를 먼저 확정하고 산출물 머리에 표기"
+        - "4갈래(기관·정책 / 연구·학술 / 보도 / 통념·질문)로 검색"
+        - "출처 원장 8컬럼(ID·등급·발행처·제목·원문 발행일·시의성·1차2차·URL) 산출"
+        - "이슈 후보 5~7개 + 각 후보에 content_type 제안·근거 소스 ID·시의성·리스크"
+        - "시의성·content_type을 참고값으로 표기 (확정은 verify·script)"
+        - "유효기한을 여기서 계산하지 않음"
+        - "사용자에게 후보 선택을 요청"
+  - id: edge_t3_only
+    description: 흥미로운 주장이 기사에만 있고 1차 출처를 못 찾은 경우
+    input:
+      finding: "○○대 연구팀 발표라는 기사 3건, 논문·보도자료 미발견"
+    expected:
+      checks:
+        - "원장에 2차(원출처 미확인)으로 표기"
+        - "이슈 후보에서 강등하되 삭제하지 않음"
+        - "후보로 올리는 경우 ⚠️ 1차 출처 없음 표시 + 추천하지 않음"
+  - id: edge_stale_topic
+    description: 검색 결과가 대부분 6개월 이상 된 자료
+    input:
+      keyword: "무릎 연골 재생"
+    expected:
+      checks:
+        - "시의성 D로 등급 부여"
+        - "속보·시점 화법 금지 제약을 후보에 명시"
+        - "상시 정보(guide/myth) 방향 후보를 우선 제시"
+  - id: edge_correction_exists
+    description: 후보 소스에 이후 정정 보도가 존재
+    expected:
+      checks:
+        - "4단계 후속 확인에서 정정 발견"
+        - "원장에 별도 행 추가 + 후보에 ⚠️ 후속 있음 표기"
+  - id: guard_no_t4_source
+    description: 블로그·유튜브 요약이 근거로 들어오려는 경우
+    input:
+      user_provided: "이 블로그 글에 나온 내용으로 만들어줘"
+    expected:
+      checks:
+        - "T4는 원장의 근거 행으로 올리지 않음"
+        - "주제 발굴 단서로만 쓰고 T1/T2를 별도로 찾음"
+        - "찾지 못하면 사용자에게 그 사실을 알림"
+  - id: guard_no_prior_knowledge
+    description: 검색 없이 학습 지식으로 답하려는 유혹
+    expected:
+      checks:
+        - "학습 지식 기반 '요즘 화제' 서술이 없음"
+        - "원장의 모든 행이 실제 검색으로 확인된 것"
+  - id: unattended_selection
+    description: 무인 실행에서 후보 선택
+    expected:
+      checks:
+        - "T1/T2 보유 + 시의성 최고 + 적합도 상 순으로 1순위 자동 선택"
+        - "자동 선택 사실과 기준을 명시"
