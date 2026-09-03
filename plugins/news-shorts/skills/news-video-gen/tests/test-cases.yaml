@@ -1,5 +1,5 @@
 name: news-video-gen
-version: 0.1.1
+version: 0.2.0
 test_cases:
   - id: happy_no_person
     description: 인물 없는 뉴스형 기획 (데이터 카드 위주)
@@ -21,13 +21,35 @@ test_cases:
         - "스토리보드로 되돌림"
         - "조립 지시서를 내지 않음"
   - id: gate_cost_approval
-    description: 비용 승인 전
+    description: 비용 게이트 사다리 준수
     expected:
       checks:
-        - "비용 추정 고지 없이 생성 호출하지 않음"
-        - "data_card·caution 씬은 스틸+켄번스 무비용 대안을 함께 제시"
-        - "배정 초가 5초 초과인 씬은 상위 클립 단위로 계산"
-        - "훅 씬 1개 테스트 생성 권장"
+        - "get_cost:true 실측 프리플라이트로 크레딧 고지 후 승인 대기"
+        - "드래프트 게이트(G2): 앵커 샷 1개를 저해상도(480p)·fast/mini로 먼저 생성해 승인받음"
+        - "드래프트 승인 전 1080p 본 생성 호출 없음"
+        - "data_card·caution 씬은 정지 스틸+켄번스가 기본 (클립 비용 없음)"
+        - "샷 묶음 씬은 샷 수 × 샷 duration 기준으로 비용 계산"
+  - id: edge_draft_rejected
+    description: 드래프트(G2) 결과가 원하는 방향이 아님
+    input:
+      draft_result: "앵커 샷 드래프트 480p — 톤이 의도와 다름"
+    expected:
+      checks:
+        - "본 생성(1080p) 크레딧을 쓰지 않음"
+        - "프롬프트 수정 후 드래프트만 재시도"
+        - "스틸 프리뷰로 대체 검증하지 않음 (스틸은 영상 결과를 예고하지 못함)"
+  - id: happy_shot_chain
+    description: hook·context 씬의 샷 묶음 연속 생성
+    input:
+      shot_plan: "S1(씬 1-2, 6초) → cut → data_card 씬 3 → cut → S2(씬 4-6, extension 내부)"
+    expected:
+      checks:
+        - "씬별 독립 스틸→i2v가 아니라 샷 단위 연속 생성"
+        - "샷 묶음 씬은 씬 스틸을 만들지 않음 (스틸은 data_card·caution·demo·인물 앵커만)"
+        - "extension 연결은 직전 샷 job_id로 이어가기, 순차 실행"
+        - "샷 경계 seam 검사(끝/첫 프레임 대조) 후 shots[].seam_check 기록"
+        - "같은 샷의 씬들은 같은 url + 씬별 trim_to로 지시서에 분할 표기"
+        - "같은 shot 내부 씬 경계를 assembly.transitions에 지정하지 않음"
   - id: clip_duration_covers_scene
     description: 배정 6.0초 씬
     expected:
@@ -39,8 +61,8 @@ test_cases:
     expected:
       checks:
         - "그룹별 앵커 스틸 1장 생성 후 승인 게이트"
-        - "이후 씬은 앵커를 인물 참조로 전달"
-        - "i2v 체인만 사용, text-to-video 직행 금지"
+        - "이후 씬·샷은 앵커를 start_image/인물 참조로 전달"
+        - "앵커 start_image 고정 또는 extension 이어가기만 사용, 참조만 넣은 text-to-video 직행 금지"
         - "P1 앵커를 P2 씬에 쓰지 않음"
   - id: person_extra_anchor_null
     description: 씬마다 다른 단역 (P1-a, P1-b)

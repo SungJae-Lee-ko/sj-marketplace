@@ -1,5 +1,5 @@
 name: news-assemble
-version: 0.1.1
+version: 0.2.0
 test_cases:
   - id: happy_full_assembly
     description: 지시서·클립·나레이션이 모두 갖춰진 정상 조립
@@ -119,3 +119,13 @@ test_cases:
     expected:
       checks:
         - "거절 + 분석 전용 원칙 안내"
+  - id: happy_shot_shared_url
+    description: 샷 단위 연속 생성 클립(같은 url을 여러 씬이 공유)의 조립
+    input:
+      instruction: "clips[]의 씬 1·2가 shot S1, 같은 url, trim_to 0-4.0/4.0-6.0"
+    expected:
+      checks:
+        - "같은 url은 1회만 다운로드하고 씬별 trim_to로 분할"
+        - "같은 shot의 인접 씬 경계에 전환 효과(xfade)를 적용하지 않음"
+        - "transitions가 그 경계를 가리키면 news-video-gen으로 되돌림"
+        - "자막·크레딧·나레이션은 씬 시간표 기준으로 씬별 배치 (샷과 무관)"

@@ -76,6 +76,7 @@ news-research ─→ news-verify ─→ news-script ─→ news-storyboard ─�
 - 출처 크레딧이 스토리보드 컬럼 → 조립 자막 레이어 → 발행 키트 출처 목록으로 이어진다 (끊기면 다음 단계가 멈춘다)
 - `expiry_date`(업로드 마감)와 `content_expiry`(게시본 유효 종료) + 게시 후 7일·30일 정정 점검
 - 화면의 글자·수치·로고는 AI에게 그리게 하지 않고 전부 자막 레이어로 이관
+- hook·context 등은 샷 단위 연속 생성(슬라이드쇼 방지), data_card·caution·demo는 의도된 정지·교차컷 경로 유지, 본 생성 전 480p 드래프트 승인
 
 변경 이력: [plugins/news-shorts/CHANGELOG.md](plugins/news-shorts/CHANGELOG.md)
 

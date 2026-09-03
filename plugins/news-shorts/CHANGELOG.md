@@ -1,5 +1,25 @@
 # CHANGELOG — news-shorts
 
+## 0.2.0 (2026-09-03) — 샷 단위 연속 생성 아키텍처 이식
+
+shopping-shorts v0.8.0에서 검증한 재설계를 이식했다. 씬별 스틸→i2v→이어붙이기가 만들던 "사진 붙인 영상"(슬라이드쇼) 문제를 해소하되, 뉴스형의 의도된 스틸 경로는 구분해 유지했다.
+
+- **feat: 샷 단위 연속 생성** (news-storyboard + news-video-gen)
+  - `hook`·`context`·`evidence`·`cta`·인물 씬을 씬 2-3개씩 **샷(8-15초)**으로 묶어 연속 생성. 스토리보드가 **샷 플랜**(샷 ID·씬 범위·연결 방식·공통 스타일 프리픽스)을 신규 산출하고, 샷 사이는 `extension`(video_extension 이어가기)/`cut`/`transition`(start+end frame)으로 연결 — references/shot-continuity.md 신설
+  - **의도된 스틸 경로는 유지**: `data_card`·`caution`(자막이 주인공 — 정지 배경+켄번스가 정답), `demo`(자세 정확도 — 2스틸 교차컷). 이 셋은 샷으로 묶지 않는다
+  - 샷 묶음 씬의 씬별 스틸 생성 제거 (스틸은 인물 앵커·data_card/caution 배경·demo 2스틸만)
+  - 검수에 **연결부(seam) 검사** 추가 (샷 경계 끝/첫 프레임 대조 — 글자·로고 생성 여부 포함)
+  - 인물 샷은 앵커 스틸 start_image 고정 또는 **extension 이어가기**(실제 픽셀 연장으로 identity 유지)만 허용 — 기존 identity switching 방지 규칙과 정합
+  - 공통 스타일 프리픽스에 `no text, no logos, no on-screen numbers`를 필수 포함 (뉴스형 제1원칙 유지)
+- **feat: 비용 게이트 사다리** (news-video-gen)
+  - G0 샷 플랜·앵커 스틸 승인 → G1 `get_cost:true` 실측 프리플라이트 → **G2 저해상도(480p·fast/mini) 드래프트 생성·승인** → G3 본 생성(1080p). 드래프트 승인 전 1080p 호출 금지
+  - 샷 묶음 비용은 씬 수가 아니라 샷 수 × duration 기준 — 씬별 클립 대비 절감분 반영
+- **fix: 조립 계약 확장** (news-video-gen + news-assemble)
+  - `shots[]`(샷 ID·씬 범위·모드·seam_check)와 `clips[].shot` 필드 신설. 같은 샷의 씬들은 **같은 url + 씬별 trim_to** 공유 (씬 시간표·출처 크레딧 타이밍 계약 무변경)
+  - 정합 검사 추가: 같은 shot 씬들의 trim_to 연속성 / `assembly.transitions`가 샷 내부 경계를 가리키면 반려
+  - assemble: url당 1회 다운로드, 같은 shot 인접 씬 경계에는 xfade 미적용
+- 모델 폴백 표에 video_extension 미지원 대응(끝 프레임 캡처 → start_image + seam 검사 강화) 추가
+
 ## 0.1.1 (2026-08-27) — 실전 검증 반영
 
 「무릎건강」 키워드로 news-research → news-verify를 **실제로 완주**해 규칙의 실효성을 확인했다. 잘 작동한 것과 틀린 것이 함께 나왔고, 틀린 것 3건을 반영했다.

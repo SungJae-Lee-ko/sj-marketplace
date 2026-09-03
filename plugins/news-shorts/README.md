@@ -40,7 +40,7 @@ news-research ─→ news-verify ─→ news-script ─→ news-storyboard ─�
 | `news-verify` | 주장 분해 → **5관문 검증** → 강도 판정(E1~E4·근거부재) → 경고 카드 → 유효기한 → **팩트 카드 + 탈락 목록** | "이거 사실인지 확인해줘", "팩트체크" |
 | `news-script` | `content_type` 확정 → 앵글 2안 → 유형별 5단계 → **문장별 근거 카드 ID** → 필수 문구 예산 → 나레이션 시간표. 기존 대본 100점 진단 모드 | "이 팩트로 대본 써줘", "내 쇼츠 뭐가 문제야" |
 | `news-storyboard` | 고정 **10컬럼** 씬 표(`role`·출처 크레딧 포함) · 씬 시간표 확정 · 카드↔씬 매핑 · **자막 자체 점검** · AI 프롬프트 | "스토리보드 만들어줘", "씬 나눠줘" |
-| `news-video-gen` | 씬 스틸 → image-to-video → 클립 검수 → 조립 지시서. 인물 일관성 · 데이터 카드 분기 · 생성 금지 소재 | "영상 생성해줘", "클립 뽑아줘" |
+| `news-video-gen` | **샷 단위 연속 생성**(hook·context 등) + 스틸 경로(data_card·demo) → 검수(seam 포함) → 조립 지시서. 비용 게이트 드래프트 승인 · 인물 일관성 · 생성 금지 소재 | "영상 생성해줘", "클립 뽑아줘" |
 | `news-assemble` | 렌더 전 5게이트 → 트림·연결 → 전환 보정 → 오디오 믹스 → **자막 2층 번인** → 완성 MP4 | "조립해줘", "최종 영상 만들어줘" |
 | `news-publish-kit` | 제목 3안 · 설명문 · **출처 목록** · 해시태그 · 고정댓글 · 체크리스트 · **정정 점검 예약** | "업로드 준비해줘", "출처 정리해줘" |
 
@@ -61,7 +61,7 @@ news-research ─→ news-verify ─→ news-script ─→ news-storyboard ─�
 | `content_type` (`issue`/`myth`/`guide`) | news-research 제안 → **news-script 확정** | 대본 구조 · 씬 규칙 · 검수 기준 |
 | `expiry_date` / `content_expiry` | news-verify (만료 사유 우선) | **storyboard·video-gen·assemble·publish-kit의 시작 게이트** · 정정 점검 일정 |
 | **씬 시간표** (씬 단위: 예상→배정→실측) | news-storyboard (script의 문장 단위 표를 받아 확정) | video-gen 클립 길이 · assemble 길이 정합·자막 타이밍. **배정 초가 유일한 계약값** |
-| `role` (`hook`/`context`/`data_card`/`evidence`/`demo`/`caution`/`cta`) | news-storyboard | video-gen 모션 프리셋 · assemble 자막 스타일 · auditor 씬 비중 |
+| `role` (`hook`/`context`/`data_card`/`evidence`/`demo`/`caution`/`cta`) | news-storyboard | video-gen 샷 묶음/스틸 경로 분기·카메라 연출 · assemble 자막 스타일 · auditor 씬 비중 |
 | `person_group` (`P1`, `P2` …) | news-storyboard | video-gen 앵커 스틸 관리 · auditor 프레임 대조 |
 | `caution_scene` / `caution_level` | news-storyboard | assemble 렌더 게이트 · publish-kit 고정댓글 · auditor |
 
@@ -72,7 +72,9 @@ news-research ─→ news-verify ─→ news-script ─→ news-storyboard ─�
 - **출처가 화면에 남는다** — 저작권법 제37조의 출처 명시 의무이기도 합니다. 근거 카드가 있는 씬에 크레딧이 없으면 생성·조립이 멈춥니다
 - **시의성이 두 개의 기한을 만든다** — `expiry_date`(업로드 마감)와 `content_expiry`(게시된 영상의 유효 종료). 게시 후 정정 절차까지 발행 키트가 안내합니다
 - **AI는 그림만, 글자는 자막이** — AI가 그린 기관명은 **틀릴 수 있고 틀렸는지 우리가 확인할 방법이 없습니다.** 확인 불가능한 기관명이 화면에 뜨는 것 자체가 가짜 자료 화면입니다
-- **인물 일관성** — 인물 등장 씬은 스틸 고정 → image-to-video 필수 체인. `person_group`별 앵커 관리로 identity switching을 막습니다
+- **연속성은 생성 단계에서** — hook·context·evidence·cta·인물 씬은 씬 2-3개를 샷(8-15초)으로 묶어 연속 생성하고 샷 사이는 video_extension·start/end frame으로 잇습니다. data_card·caution(자막 주인공)·demo(자세 정확도)는 의도된 정지·교차컷 경로를 유지합니다
+- **비용 게이트** — get_cost 실측 고지 후, 본 생성(1080p) 전에 앵커 샷 1개를 480p 드래프트로 승인받습니다
+- **인물 일관성** — 인물 등장 샷은 앵커 스틸 start_image 고정 또는 extension 이어가기만 허용. `person_group`별 앵커 관리로 identity switching을 막습니다
 - **나레이션이 시간을 정한다** — 생성 전 실측은 스토리보드가, 생성 후 실측은 조립이 처리합니다. 배속(atempo) 보정은 0.95~1.05로 제한합니다
 - **조립은 코드로** — ffmpeg 자동 렌더. 전환(xfade)을 쓰면 겹침만큼 자막·나레이션 타이밍을 보정합니다
 - 타인 영상·기사 화면은 **분석에도 쓰지 않습니다**
