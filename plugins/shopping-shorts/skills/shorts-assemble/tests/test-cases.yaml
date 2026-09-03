@@ -1,5 +1,5 @@
 name: shorts-assemble
-version: 0.7.1
+version: 0.8.0
 test_cases:
   - id: happy_full_assembly
     description: 클립 8개 + 스토리보드 + 나레이션으로 전체 자동 조립
@@ -175,3 +175,13 @@ test_cases:
         - "±0.5초 검증을 갱신본 기준으로 수행 (제외 전 값과 대조하지 않음)"
         - "나레이션이 있던 씬이므로 재생성·문장 이동·제외 중 선택을 사용자에게 요청"
         - "제외 씬 번호와 갱신 총 길이를 리포트에 기재"
+  - id: happy_shot_shared_url
+    description: 샷 단위 연속 생성 클립(같은 url을 여러 씬이 공유)의 조립
+    input:
+      instruction: "clips[]의 씬 2·3·4가 shot S2, 같은 url, trim_to 0-4.0/4.0-8.5/8.5-12.5"
+    expected:
+      checks:
+        - "같은 url은 1회만 다운로드하고 씬별 trim_to로 분할"
+        - "같은 shot의 인접 씬 경계(2-3, 3-4)에 전환 효과(xfade)를 넣지 않음"
+        - "샷과 샷 사이 경계에만 전환 효과 적용 가능"
+        - "자막·나레이션은 씬 시간표 기준으로 씬별 배치 (샷과 무관)"

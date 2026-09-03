@@ -11,7 +11,7 @@
     {
       "name": "shopping-shorts",
       "source": "./plugins/shopping-shorts",
-      "version": "0.7.1",
+      "version": "0.8.0",
       "description": "유튜브 쇼츠 풀세트 제작 플러그인 — 스크립트·스토리보드·AI 영상 생성(인물 일관성 체인)·자동 조립(완성 MP4)·발행 키트 5스킬 체인 + 총괄 프로듀서/검수 에이전트 2종. 판매형·습관정보형 두 콘텐츠 유형 지원",
       "category": "content",
       "tags": [

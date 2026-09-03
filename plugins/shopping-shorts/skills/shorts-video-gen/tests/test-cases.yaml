@@ -1,36 +1,111 @@
 name: shorts-video-gen
-version: 0.7.1
+version: 0.8.0
 test_cases:
   - id: happy_first_run
-    description: 9씬 스토리보드 첫 생성 실행
+    description: 9씬(샷 4개) 스토리보드 첫 생성 실행
     input:
-      storyboard: "확정 9씬"
-      reference_a: "제품 실사진"
+      storyboard: "확정 9씬, 샷 플랜(S1-S4)·씬 시간표·person_group 포함"
+      reference_a: "제품 실사진 3장 (정면·측면·상단)"
       mcp: "연결됨"
     expected:
       checks:
-        - "생성 전 비용 추정(씬 수 기반) 제시 후 승인 대기"
-        - "첫 실행이므로 훅 씬 1개 테스트 생성을 기본 제안"
-        - "제품 씬은 A자료를 소스로 image-to-video"
-        - "모션 프리셋이 씬 역할 매핑표와 일치"
-        - "산출 JSON에 trim_to·review 필드 존재"
+        - "A 3장을 전부 반입해 media_id 확보 (다각도 참조 세트)"
+        - "생성 전 get_cost:true 프리플라이트로 실측 크레딧 고지 후 승인 대기"
+        - "드래프트 게이트(G2): 앵커 샷 1개를 저해상도(480p)·fast/mini로 먼저 생성해 승인받음"
+        - "드래프트 승인 전 1080p 본 생성 호출 없음"
+        - "제품 씬 스틸을 이미지 모델로 재생성하지 않음 — A를 image_references/start_image로 직접 전달"
+        - "씬별 독립 클립이 아니라 샷 단위(8-15초) 연속 생성"
+        - "aspect_ratio 9:16 명시, generate_audio false (오디오는 assemble 담당)"
+        - "산출 JSON에 shots·shot·trim_to·review 필드 존재, 같은 샷의 씬들은 url 공유"
         - "ai_disclosure 플래그 포함"
+  - id: happy_extension_chain
+    description: 같은 공간 연속 샷의 이어가기 생성
+    input:
+      shot_plan: "S1(주방 훅) → S2(주방에서 이어지는 사용 동작), 연결 방식 extension"
+      s1_result: "생성 완료 (job_id 있음)"
+    expected:
+      checks:
+        - "S2는 video_extension(직전 샷 job_id 참조)으로 이어가기 생성"
+        - "제품 등장 샷이면 A image_references를 extension에도 유지"
+        - "extension 체인은 병렬이 아니라 순차 실행"
+  - id: happy_seam_review
+    description: 샷 경계 연결부 검수
+    input:
+      shots: "S1·S2 생성 완료"
+    expected:
+      checks:
+        - "직전 샷 끝 프레임 vs 다음 샷 첫 프레임을 나란히 대조 (공간·조명·제품 상태·인물)"
+        - "판정을 shots[].seam_check에 기록"
+        - "제품 등장 샷은 A 원본 대조(라벨·로고·색·비율)와 샷 간 제품 렌더링 일관성도 검사"
+  - id: edge_draft_rejected
+    description: 드래프트(G2) 결과가 원하는 방향이 아님
+    input:
+      draft_result: "앵커 샷 드래프트 480p — 무드가 의도와 다름"
+    expected:
+      checks:
+        - "본 생성(1080p) 크레딧을 쓰지 않음"
+        - "프롬프트·참조 수정 후 드래프트만 재시도"
+        - "스틸 이미지 생성으로 대체 검증하지 않음 (스틸은 영상 결과를 예고하지 못함)"
+  - id: edge_fidelity_fail_escalation
+    description: 제품 왜곡 불합격 시 재시도 방식
+    input:
+      shot_result: "F1 참조 생성 샷에서 라벨 글자 뭉개짐"
+    expected:
+      checks:
+        - "프롬프트 문구 수정 반복이 아니라 보존 대응 사다리 강등 (F1→F2 정지 앵커 → F3 무생성 컷 → F4 실촬영)"
+        - "강등은 불합격한 샷에만 국소 적용"
+        - "끝 구간 드리프트만 문제면 trim_to 조정을 먼저 검토"
+        - "강등 사용 시 note에 단계·사유 기록"
+  - id: edge_old_storyboard_no_shot_plan
+    description: 샷 플랜이 없는 구버전 스토리보드 입력
+    input:
+      storyboard: "8컬럼 씬 표·씬 시간표만 있음 (샷 플랜 없음)"
+    expected:
+      checks:
+        - "shot-continuity.md 그룹핑 규칙으로 샷 플랜을 만들어 사용자 확인 후 진행"
+        - "훅은 단독 샷으로 분리"
+  - id: edge_no_reference_a
+    description: 제품 등장 샷이 있는데 A자료 없음 (sales)
+    input:
+      content_type: "sales"
+      storyboard: "제품 씬 포함"
+      reference_a: "없음"
+    expected:
+      checks:
+        - "생성하지 않고 A(제품 실사진)를 먼저 요청"
+        - "프롬프트만으로 제품을 그리면 상상 제품이 나온다는 이유 고지"
+  - id: edge_third_party_b_video
+    description: 타인 영상(B)을 모션 참조로 요청
+    input:
+      reference_b: "타 크리에이터의 쇼츠 영상"
+      user_request: "이 영상 느낌으로 만들어줘"
+    expected:
+      checks:
+        - "타인 영상은 video_references로 넘기지 않음 (분석 전용 원칙)"
+        - "구조·페이싱만 씬 설계 참고로 반영"
   - id: edge_no_mcp
     description: 영상 생성 MCP 미연결
     input:
       mcp: "없음"
     expected:
       checks:
-        - "생성 시도 없이 씬별 프롬프트 정리만 제공"
+        - "생성 시도 없이 샷별 프롬프트 + 참조 매핑만 정리해 제공"
         - "MCP 연결 방법 안내"
   - id: edge_regen_fail
-    description: 클립 검수 2회 연속 불합격
+    description: 보존 사다리 강등 후에도 연속 불합격
     input:
-      scene_result: "로고 깨짐 재발"
+      shot_result: "F2 정지 앵커에서도 로고 깨짐, F3 정지컷은 연출상 불가"
     expected:
       checks:
-        - "3회째 생성하지 않음"
-        - "해당 씬 실촬영 전환 제안"
+        - "추가 생성하지 않음"
+        - "해당 샷 실촬영 전환(F4) 제안, review는 fail"
+  - id: edge_unseen_angle_shot
+    description: A자료에 없는 각도(제품 뒷면 orbit)를 요구하는 샷
+    input:
+      storyboard_scene: "제품 회전 360도 샷, A자료는 정면 1장"
+    expected:
+      checks:
+        - "생성하지 않고 샷 수정 또는 실촬영 전환 제안"
   - id: edge_celebrity_character
     description: 유명인 얼굴로 캐릭터 등록 요청
     input:
@@ -48,14 +123,25 @@ test_cases:
   - id: happy_assembly_contract
     description: 조립 지시서가 다음 스킬의 입력 계약을 만족하는가
     input:
-      storyboard: "확정 9씬, 인물 그룹 P1 포함"
+      storyboard: "확정 9씬 샷 4개, 인물 그룹 P1 포함"
     expected:
       checks:
-        - "JSON에 content_type 필드 존재"
+        - "JSON에 content_type·scene_timing·shots 필드 존재"
+        - "clips[]는 씬 단위로 분할되고 같은 샷의 씬들은 같은 url + 각자 trim_to"
         - "인물 씬 clip에 person_group과 person_anchor 둘 다 채워짐"
         - "clips[].narration에 스토리보드 나레이션 문장이 실림"
         - "TTS 미생성 시 narration_file은 null"
         - "'편집 앱에서 수행' 류의 수동 편집 안내가 없음"
+  - id: happy_person_shot_anchor
+    description: 인물 포함 샷의 생성 경로
+    input:
+      shot: "S2 (P1 부부 등장, 씬 2-3)"
+      person_anchor: "still_p1_anchor.png (승인됨)"
+    expected:
+      checks:
+        - "P1 앵커 스틸을 start_image로 고정 (참조만 넣은 text-to-video 직행 금지)"
+        - "프롬프트에 연속 테이크 문구(one single continuous take...) 포함"
+        - "extension 이어가기 샷은 앵커 없이 허용 (실제 픽셀 연장으로 인물 유지)"
   - id: happy_multi_person_group
     description: 서로 다른 인물 그룹 2개가 등장
     input:
@@ -63,19 +149,20 @@ test_cases:
     expected:
       checks:
         - "그룹별로 앵커 스틸을 각각 관리"
-        - "P1 앵커를 P2 씬에 재사용하지 않음"
+        - "P1 앵커를 P2 샷에 재사용하지 않음"
   - id: happy_habit_generation_path
     description: 습관형(상품 없음) 영상 생성이 A자료 없이 완주하는가
     input:
       content_type: "habit"
-      storyboard: "동작 2개 9씬 + 캐스팅 시트 P1"
+      storyboard: "동작 2개 9씬 + 캐스팅 시트 P1 + 샷 플랜"
       reference_a: null
     expected:
       checks:
         - "A자료 업로드를 요구하지 않고 진행 (사전 조건 5-A는 sales 한정)"
         - "캐스팅 시트로 P1 앵커 스틸을 먼저 생성"
-        - "앵커 스틸 승인 게이트를 거친 뒤 i2v 크레딧 사용"
-        - "A자료 없음을 이유로 중단하지 않음"
+        - "앵커 스틸 승인 게이트를 거친 뒤 영상 크레딧 사용"
+        - "동작 시연 씬은 샷으로 묶지 않고 2스틸 교차컷 경로 유지"
+        - "인트로·CTA 등 비시연 씬은 샷 묶음 생성에 참여"
   - id: happy_habit_two_stills_per_motion
     description: 동작 시연이 2스틸 교차컷으로 만들어지는가
     input:
@@ -87,7 +174,7 @@ test_cases:
         - "두 스틸을 같은 앵커·의상·배경으로 생성"
         - "배정 4초이므로 시작→정점→시작 3컷으로 확장"
         - "횟수·시간 카운트 자막이 스토리보드에 없으면 되돌림"
-        - "비용 추정에 씬당 스틸 2장·클립 2개로 반영"
+        - "비용 계산에 씬당 스틸 2장·클립 2개(4초 이상 3컷)로 반영"
   - id: edge_habit_live_action_refused
     description: 실촬영 권고를 사용자가 거부한 경우
     input:
@@ -113,9 +200,9 @@ test_cases:
       request: "쿠팡 상세 이미지로 제품 클립 만들어줘"
     expected:
       checks:
-        - "제품 AI 재생성을 진행하지 않고 사유 고지"
+        - "제품 AI 재생성을 진행하지 않고 사유 고지 (보존 사다리도 적용 불가)"
         - "공식 제공 소재·실촬영 경로를 제안"
-        - "AI는 배경·상황 씬에만 사용"
+        - "AI는 배경·상황 샷에만 사용"
   - id: happy_review_field_recorded
     description: 클립 검수 결과가 review 필드로 기록되는가
     input:
@@ -132,8 +219,9 @@ test_cases:
       error: "Requires plus plan"
     expected:
       checks:
-        - "경량/하위 모델로 폴백"
+        - "경량/하위 모델 → 동일 참조 롤 지원 타 벤더 순으로 폴백"
         - "단가를 다시 preflight 하고 비용 재승인"
+        - "video_extension 미지원 폴백이면 끝 프레임 캡처 → start_image로 대체하고 seam 검사 강화"
         - "캐릭터 등록이 막히면 앵커 스틸 방식으로 대체"
   - id: happy_multicut_serialization
     description: 한 씬이 클립 2~3개일 때 조립 지시서 표기

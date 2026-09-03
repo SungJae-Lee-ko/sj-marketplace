@@ -43,7 +43,8 @@ shorts-script ─→ shorts-storyboard ─┬─→ shorts-video-gen ─→ shor
 **핵심 설계**
 
 - 콘텐츠 유형(`sales`/`habit`)과 판매 형태(`sales_form`)를 스크립트 단계에서 판별해 체인 전체가 나른다
-- 인물 등장 씬은 스틸 고정 → 영상 변환 필수 체인, `person_group`별 앵커 스틸 관리 (identity switching 방지)
+- 제품 실사진은 재생성 없이 영상 모델에 직접 참조로 전달, 씬 2-3개를 샷으로 묶어 연속 생성 (제품 왜곡·슬라이드쇼 방지)
+- 인물 등장 샷은 앵커 스틸 고정 → 영상 변환 필수 체인, `person_group`별 앵커 스틸 관리 (identity switching 방지)
 - 나레이션이 시간을 정한다 — 스크립트가 문장별 예상 초, 스토리보드가 씬 시간표로 확정, 조립의 배속 보정은 0.95~1.05
 - 조립은 ffmpeg 자동 렌더 — 편집 앱 없이 완성 MP4 산출
 
