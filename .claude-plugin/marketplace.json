@@ -11,7 +11,7 @@
     {
       "name": "shopping-shorts",
       "source": "./plugins/shopping-shorts",
-      "description": "쇼핑쇼츠(유튜브 쇼츠) 풀세트 제작 플러그인 — 상품 분석부터 후킹 스크립트, 장면별 스토리보드, 발행용 제목·설명·해시태그까지 3개 스킬 체인으로 산출",
+      "description": "쇼핑쇼츠(유튜브 쇼츠) 풀세트 제작 플러그인 — 상품 분석부터 후킹 스크립트, 장면별 스토리보드(샷 그룹핑), AI 영상 생성(샷 단위 연속 생성), 발행용 제목·설명·해시태그까지 4개 스킬 체인으로 산출",
       "category": "content",
       "tags": ["youtube-shorts", "commerce", "video-script", "storyboard", "korean"]
     }

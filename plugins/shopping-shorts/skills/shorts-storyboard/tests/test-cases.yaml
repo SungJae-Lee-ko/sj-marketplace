@@ -1,5 +1,5 @@
 name: shorts-storyboard
-version: 0.3.0
+version: 0.5.0
 test_cases:
   - id: happy_mixed_mode
     description: 30초 스크립트 → 혼합(실촬영+AI) 스토리보드
@@ -10,19 +10,42 @@ test_cases:
     expected:
       checks:
         - "씬 수 7-12개, 씬당 2-5초"
-        - "표에 시간·화면·앵글·자막·오디오 5컬럼 모두 채움"
-        - "AI 씬 프롬프트에 vertical 9:16 포함"
+        - "표에 샷·시간·제품·화면·앵글·자막·오디오 컬럼 모두 채움"
+        - "샷 컬럼: 씬 2-3개씩 묶여 샷 3-5개, 훅은 단독 샷"
+        - "제품 컬럼(O/X)이 전 씬에 표기됨"
+        - "AI 프롬프트가 씬별이 아니라 샷별로 산출되고 참조 매핑(A/B/chain) 포함"
+        - "공통 스타일 프리픽스 한 줄이 전 샷 프롬프트에 동일하게 적용됨"
+        - "제품 등장 샷 프롬프트가 제품 형태를 재묘사하지 않음 (동작·카메라·조명·배경만)"
+        - "전환 가이드가 샷 경계별로 extension/cut/transition 중 하나를 지정"
         - "자막 배치가 references/youtube-shorts-specs.md 안전영역 준수"
         - "제품 클로즈업 씬 40% 이상"
-  - id: edge_b_as_source
-    description: 상황 자료(B)만 있고 제품 자료(A) 없음
+  - id: edge_unseen_angle
+    description: A자료는 정면 1장인데 스크립트가 제품 회전/뒷면 연출을 요구
     input:
-      reference_b: "경쟁 제품이 크게 보이는 캠핑 사용 장면"
+      script: "제품 360도 회전 리빌 장면 포함"
+      reference_a: "정면 사진 1장"
     expected:
       checks:
-        - "B를 image-to-video 소스로 쓰지 않음"
+        - "A에 없는 각도의 AI 생성 씬을 만들지 않음"
+        - "해당 장면은 씬 수정 또는 실촬영 지정"
+  - id: edge_b_video_with_competitor
+    description: 상황 자료(B)만 있고 제품 자료(A) 없음 — B에 타사 제품 노출
+    input:
+      reference_b: "경쟁 제품이 크게 보이는 캠핑 사용 장면 영상"
+    expected:
+      checks:
+        - "타사 제품이 크게 보이는 B는 video_references로 지정하지 않음"
         - "B에서 배경·무드만 추출, 타사 제품 형태·로고 미반영"
         - "A 요청 안내 1회"
+  - id: happy_b_video_as_motion_ref
+    description: 깨끗한 참고영상(B)을 모션 참조로 활용
+    input:
+      reference_a: "제품 실사진"
+      reference_b: "타사 로고 노출 없는 요리 손동작 영상"
+    expected:
+      checks:
+        - "B를 샷 프롬프트의 참조 매핑에 video_references(motion·mood)로 지정"
+        - "제품의 정답지는 여전히 A (B와 충돌 시 A 우선)"
   - id: edge_no_script
     description: 스크립트 없이 호출
     input: {}

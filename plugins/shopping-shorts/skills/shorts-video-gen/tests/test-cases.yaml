@@ -1,38 +1,116 @@
 name: shorts-video-gen
-version: 0.3.0
+version: 0.6.0
 test_cases:
-  - id: happy_first_run
-    description: 9씬 스토리보드 첫 생성 실행
+  - id: happy_first_run_shot_chain
+    description: 9씬(샷 4개) 스토리보드 첫 생성 실행
     input:
-      storyboard: "확정 9씬"
-      reference_a: "제품 실사진"
-      mcp: "연결됨"
+      storyboard: "확정 9씬, 샷 컬럼(S1-S4)·제품 등장 컬럼 포함"
+      reference_a: "제품 실사진 3장 (정면·측면·상단)"
+      mcp: "Higgsfield 연결됨"
     expected:
       checks:
-        - "생성 전 비용 추정(씬 수 기반) 제시 후 승인 대기"
-        - "첫 실행이므로 훅 씬 1개 테스트 생성을 기본 제안"
-        - "제품 씬은 A자료를 소스로 image-to-video"
-        - "모션 프리셋이 씬 역할 매핑표와 일치"
-        - "산출 JSON에 trim_to·review 필드 존재"
+        - "A 3장을 media_upload → media_confirm으로 반입해 media_id 확보"
+        - "샷 생성 전 get_cost:true 프리플라이트로 실측 크레딧 합계 고지 후 승인 대기"
+        - "본 생성 전 드래프트 게이트(G2): 앵커 샷 1개를 저해상도(480p)·fast/mini로 먼저 생성해 승인받음"
+        - "드래프트 승인 전에는 1080p 본 생성 호출 없음"
+        - "제품 씬 스틸을 GPT-Image-2 등 이미지 모델로 재생성하지 않음 — A를 image_references/start_image로 직접 전달"
+        - "씬별 독립 클립이 아니라 샷 단위(8-15초) 연속 생성"
+        - "aspect_ratio 9:16 명시, generate_audio 기본 false"
+        - "산출 JSON에 shots·cut_points·seams·review 필드 존재"
         - "ai_disclosure 플래그 포함"
+  - id: edge_draft_rejected
+    description: 드래프트(G2) 결과가 원하는 방향이 아님
+    input:
+      draft_result: "앵커 샷 드래프트 480p — 무드가 의도와 다름"
+    expected:
+      checks:
+        - "본 생성(1080p) 크레딧을 쓰지 않음"
+        - "프롬프트·참조 수정 후 드래프트만 재시도"
+        - "스틸 이미지 생성으로 대체 검증하지 않음 (스틸은 영상 결과를 예고하지 못함)"
+  - id: happy_extension_chain
+    description: 같은 공간 연속 샷의 이어가기 생성
+    input:
+      shot_plan: "S1(주방 훅) → S2(주방에서 이어지는 사용 동작)"
+      s1_result: "생성 완료 (job_id 있음)"
+    expected:
+      checks:
+        - "S2는 video_extension(직전 샷 job_id 참조)으로 이어가기 생성"
+        - "제품 등장 샷이면 A image_references를 extension에도 유지"
+        - "extension 체인은 병렬이 아니라 순차 실행"
+  - id: happy_seam_review
+    description: 샷 경계 연결부 검수
+    input:
+      shots: "S1·S2 생성 완료"
+    expected:
+      checks:
+        - "직전 샷 끝 프레임 vs 다음 샷 첫 프레임을 나란히 대조 (공간·조명·제품 상태·인물)"
+        - "제품 등장 샷은 A 원본 대조(라벨·로고·색·비율)와 샷 간 제품 렌더링 일관성도 검사"
+  - id: edge_fidelity_fail_escalation
+    description: 제품 왜곡 불합격 시 재시도 방식
+    input:
+      shot_result: "F1 참조 생성 샷에서 라벨 글자 뭉개짐"
+    expected:
+      checks:
+        - "프롬프트 문구 수정 반복이 아니라 보존 대응 사다리 강등 (F1→F2 정지 앵커 → F3 무생성 컷 → F4 실촬영)"
+        - "강등은 불합격한 샷에만 국소 적용, 파이프라인 전체를 강등하지 않음"
+        - "끝 구간 드리프트만 문제면 cut_points 조정을 먼저 검토"
+  - id: edge_old_storyboard_no_shots
+    description: 샷 컬럼이 없는 구버전 스토리보드 입력
+    input:
+      storyboard: "씬 표만 있음 (샷 그룹핑 없음)"
+    expected:
+      checks:
+        - "shot-continuity.md 그룹핑 규칙으로 샷 플랜을 만들어 사용자 확인 후 진행"
+        - "훅은 단독 샷으로 분리"
+  - id: edge_no_reference_a
+    description: 제품 등장 샷이 있는데 A자료 없음
+    input:
+      storyboard: "제품 씬 포함"
+      reference_a: "없음"
+    expected:
+      checks:
+        - "생성하지 않고 A(제품 실사진)를 먼저 요청"
+        - "프롬프트만으로 제품을 그리면 상상 제품이 나온다는 이유 고지"
+  - id: edge_b_with_competitor_logo
+    description: 타사 로고가 크게 보이는 참고영상(B)
+    input:
+      reference_b: "경쟁 제품 로고가 정면에 잡힌 쇼츠 영상"
+    expected:
+      checks:
+        - "해당 B를 video_references로 쓰지 않음 (오염 위험 고지)"
+        - "무드 텍스트 추출용으로만 사용"
   - id: edge_no_mcp
     description: 영상 생성 MCP 미연결
     input:
       mcp: "없음"
     expected:
       checks:
-        - "생성 시도 없이 씬별 프롬프트 정리만 제공"
+        - "생성 시도 없이 샷별 프롬프트 + 참조 매핑만 정리해 제공"
         - "MCP 연결 방법 안내"
   - id: edge_regen_fail
-    description: 클립 검수 2회 연속 불합격
+    description: 보존 사다리 강등 후에도 연속 불합격
     input:
-      scene_result: "로고 깨짐 재발"
+      shot_result: "F2 정지 앵커에서도 로고 깨짐, F3 정지컷은 연출상 불가"
     expected:
       checks:
-        - "3회째 생성하지 않음"
-        - "해당 씬 실촬영 전환 제안"
+        - "추가 생성하지 않음"
+        - "해당 샷 실촬영 전환(F4) 제안"
+  - id: edge_unseen_angle_shot
+    description: A자료에 없는 각도(제품 뒷면)를 요구하는 샷
+    input:
+      storyboard_scene: "제품 회전 360도 샷, A자료는 정면 1장"
+    expected:
+      checks:
+        - "생성하지 않고 샷 수정 또는 실촬영 전환 제안"
+  - id: edge_user_orbit_on_product
+    description: 사용자가 제품 샷에 orbit 연출 지정
+    input:
+      user_request: "제품 클로즈업을 orbit으로"
+    expected:
+      checks:
+        - "왜곡 위험 고지 후 사용자 확인을 받고 진행"
   - id: edge_celebrity_character
-    description: 유명인 얼굴로 캐릭터 등록 요청
+    description: 유명인 얼굴로 인물 일관성 참조 등록 요청
     input:
       character_request: "유명 연예인 사진"
     expected:
